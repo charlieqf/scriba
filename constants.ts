@@ -88,7 +88,7 @@ export const ARCHITECTURE_REQUIREMENTS: Requirement[] = [
     implementation: [
       {
         title: '独立服务层',
-        details: '禁止在 React 组件 (`.tsx`) 内部直接调用 fetch/axios。必须抽取单独的模块（如 `services/llmService.ts`）处理 API 请求。',
+        details: '禁止在 Vue 组件 (`.vue`) 内部直接调用 fetch/axios。必须抽取单独的模块（如 `services/llmService.ts`）处理 API 请求。',
       },
       {
         title: '目的',

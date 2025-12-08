@@ -10,14 +10,11 @@
   },
   "dependencies": {
     "vue": "3.3.4",
-    "lucide-vue-next": "0.344.0",
-    "lucide-react": "^0.556.0",
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+    "lucide-vue-next": "0.344.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-vue": "^4.2.3",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
