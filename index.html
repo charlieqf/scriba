@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scriba - AI Medical Reports</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+{
+  "imports": {
+    "vue": "https://aistudiocdn.com/vue@3.3.4/dist/vue.esm-browser.js",
+    "lucide-vue-next": "https://unpkg.com/lucide-vue-next@0.344.0/dist/esm/lucide-vue-next.js",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/"
+  }
+}
+</script>
+    <style>
+      /* Vue Transition Styles */
+      .fade-enter-active,
+      .fade-leave-active {
+        transition: opacity 0.3s ease;
+      }
+      .fade-enter-from,
+      .fade-leave-to {
+        opacity: 0;
+      }
+
+      .slide-up-enter-active,
+      .slide-up-leave-active {
+        transition: all 0.4s ease-out;
+      }
+      .slide-up-enter-from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      .slide-up-leave-to {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased">
+    <div id="app"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
