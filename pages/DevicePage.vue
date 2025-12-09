@@ -294,9 +294,10 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
 .connect-button {
   background: #ffffff;
   box-shadow: 
-    0 0 0 12px rgba(20, 184, 166, 0.1),
-    0 0 0 24px rgba(20, 184, 166, 0.05),
-    0 8px 32px rgba(0, 0, 0, 0.08);
+    0 0 0 1px rgba(20, 184, 166, 0.1), /* Inner minimal border */
+    0 0 0 12px rgba(20, 184, 166, 0.1), /* First ring */
+    0 0 0 32px rgba(20, 184, 166, 0.05), /* Second wider ring */
+    0 20px 40px rgba(20, 184, 166, 0.15); /* Soft drop shadow */
 }
 
 .connect-button .button-inner {
