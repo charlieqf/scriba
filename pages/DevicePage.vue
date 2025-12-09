@@ -3,8 +3,8 @@
     <!-- Header -->
     <header class="page-header">
       <div class="header-left">
-        <div class="logo-icon">
-          <Mic :size="18" />
+        <div class="logo-icon-img">
+          <img :src="deviceIconImg" alt="Device Icon" />
         </div>
         <h1>Device</h1>
       </div>
@@ -90,6 +90,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { Mic, Settings, Bluetooth, Signal } from 'lucide-vue-next';
+import deviceIconImg from '../assets/device_icon.png';
 import { useBluetoothService, type DeviceSettings } from '../services/bluetoothService';
 import AddDeviceModal from '../components/AddDeviceModal.vue';
 import DeviceSettingsModal from '../components/DeviceSettingsModal.vue';
@@ -109,7 +110,15 @@ const {
 } = useBluetoothService();
 
 // Local state
-const userName = ref('Sarah'); // Would come from auth service
+const props = defineProps<{ user?: any }>();
+
+// Computed
+const userName = computed(() => {
+  if (props.user?.name) {
+    return props.user.name.split(' ')[0]; // First name
+  }
+  return 'User';
+});
 const showAddDeviceModal = ref(false);
 const showSettingsModal = ref(false);
 const isConnecting = ref(false);
@@ -175,15 +184,20 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
   gap: 10px;
 }
 
-.logo-icon {
+.logo-icon-img {
   width: 36px;
   height: 36px;
-  background: #14B8A6;
-  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.logo-icon-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .page-header h1 {
