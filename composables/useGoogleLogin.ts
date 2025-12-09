@@ -1,0 +1,63 @@
+import { onMounted, onUnmounted, ref } from 'vue';
+
+const SCRIPT_ID = 'google-gsi-script';
+
+declare global {
+    interface Window {
+        google: any;
+    }
+}
+
+export function useGoogleLogin(clientId: string, callback: (response: any) => void) {
+    const isReady = ref(false);
+
+    const loadScript = () => {
+        if (document.getElementById(SCRIPT_ID)) {
+            isReady.value = true;
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.id = SCRIPT_ID;
+
+        script.onload = () => {
+            isReady.value = true;
+            initialize(clientId, callback);
+        };
+
+        document.head.appendChild(script);
+    };
+
+    const initialize = (client_id: string, cb: (r: any) => void) => {
+        if (!window.google) return;
+
+        window.google.accounts.id.initialize({
+            client_id: client_id,
+            callback: cb
+        });
+    };
+
+    const renderButton = (elementId: string, options: any = {}) => {
+        if (!window.google) return;
+
+        const target = document.getElementById(elementId);
+        if (target) {
+            window.google.accounts.id.renderButton(
+                target,
+                { theme: 'outline', size: 'large', ...options }
+            );
+        }
+    };
+
+    onMounted(() => {
+        loadScript();
+    });
+
+    return {
+        isReady,
+        renderButton
+    };
+}

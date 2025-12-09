@@ -31,7 +31,7 @@ export const authService = {
   loginWithGoogle: () => mockLogin('google'),
   loginWithFacebook: () => mockLogin('facebook'),
   loginWithFaceId: () => mockLogin('face_id'),
-  
+
   /**
    * Check if an email is already registered.
    * Mock: returns true for 'jane@example.com'
@@ -45,39 +45,68 @@ export const authService = {
    * Login with email and password
    */
   loginWithEmail: async (email: string, password: string): Promise<AuthResponse> => {
-     await new Promise((resolve) => setTimeout(resolve, 1000));
-     // Mock validation
-     if (password === 'password') {
-        const mockUser: User = {
-            id: 'email_user_1',
-            email,
-            provider: 'email',
-            token: 'mock_jwt_token_email',
-        };
-        storageService.saveUser(mockUser);
-        return { success: true, user: mockUser };
-     }
-     return { success: false, error: 'Invalid password' };
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Mock validation
+    if (password === 'password') {
+      const mockUser: User = {
+        id: 'email_user_1',
+        email,
+        provider: 'email',
+        token: 'mock_jwt_token_email',
+      };
+      storageService.saveUser(mockUser);
+      return { success: true, user: mockUser };
+    }
+    return { success: false, error: 'Invalid password' };
   },
 
   /**
    * Register a new user
    */
   registerWithEmail: async (email: string, password: string): Promise<AuthResponse> => {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const mockUser: User = {
-        id: `new_user_${Date.now()}`,
-        email,
-        provider: 'email',
-        token: 'mock_jwt_token_new',
-      };
-      storageService.saveUser(mockUser);
-      return { success: true, user: mockUser };
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const mockUser: User = {
+      id: `new_user_${Date.now()}`,
+      email,
+      provider: 'email',
+      token: 'mock_jwt_token_new',
+    };
+    storageService.saveUser(mockUser);
+    return { success: true, user: mockUser };
   },
 
   logout: () => {
     storageService.clearUser();
   },
-  
+
   getCurrentUser: () => storageService.getUser(),
+
+  socialLogin: async (provider: 'google' | 'apple' | 'facebook', token: string): Promise<AuthResponse> => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/social-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ provider, token }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Adapt backend user to frontend user type if needed
+        const user: User = {
+          ...data.user,
+          token: data.token
+        };
+        storageService.saveUser(user);
+        return { success: true, user };
+      }
+
+      return { success: false, error: data.message || 'Login failed' };
+    } catch (error) {
+      console.error('Social login error:', error);
+      return { success: false, error: 'Network connection failed' };
+    }
+  }
 };

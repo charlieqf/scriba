@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { AppleIcon, GoogleIcon, FacebookIcon } from '../components/icons';
+import { AppleIcon, FacebookIcon } from '../components/icons';
 import { authService } from '../services/authService';
 import { ArrowLeft, ScanFace } from 'lucide-vue-next';
+import GoogleLoginButton from '../components/GoogleLoginButton.vue';
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER';
+
 
 // --- Types ---
 type AuthStep = 'landing' | 'email_entry' | 'login_password' | 'signup_password';
@@ -29,6 +33,28 @@ const handleSocialLogin = async (provider: string, loginFn: () => Promise<any>) 
   } finally {
     loading.value = false;
   }
+};
+
+const handleGoogleSuccess = async (token: string) => {
+  loading.value = true;
+  try {
+    const result = await authService.socialLogin('google', token);
+    if (result.success) {
+      console.log('Logged in user:', result.user);
+      alert('Successfully logged in with Google');
+    } else {
+      alert(result.error);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleGoogleError = (msg: string) => {
+  console.error('Google Login Error:', msg);
+  alert('Google Login Failed');
 };
 
 const handleEmailContinue = async () => {
@@ -119,10 +145,14 @@ const getButtonClass = (variant: ButtonVariant) => {
             <span>Continue with Apple</span>
           </button>
           
-          <button :class="getButtonClass('outline')" @click="handleSocialLogin('google', authService.loginWithGoogle)">
-            <div class="w-5 h-5 flex items-center justify-center"><GoogleIcon /></div>
-            <span>Continue with Google</span>
-          </button>
+          <GoogleLoginButton 
+            :client-id="googleClientId" 
+            container-id="google-btn-landing"
+            width="400"
+            @success="handleGoogleSuccess" 
+            @error="handleGoogleError"
+            class="w-full flex justify-center"
+          />
           
           <button :class="getButtonClass('blue')" @click="handleSocialLogin('facebook', authService.loginWithFacebook)">
              <div class="w-5 h-5 flex items-center justify-center"><FacebookIcon class="w-5 h-5" /></div>
@@ -185,10 +215,12 @@ const getButtonClass = (variant: ButtonVariant) => {
           </div>
 
           <div class="space-y-3 pb-8">
-            <button :class="getButtonClass('outline')" @click="handleSocialLogin('google', authService.loginWithGoogle)">
-               <div class="w-5 h-5 flex items-center justify-center"><GoogleIcon /></div>
-               <span>Continue with Google</span>
-            </button>
+            <GoogleLoginButton 
+              :client-id="googleClientId" 
+              @success="handleGoogleSuccess" 
+              @error="handleGoogleError"
+              class="w-full flex justify-center"
+            />
             <button :class="getButtonClass('black')" @click="handleSocialLogin('apple', authService.loginWithApple)">
                <div class="w-5 h-5 flex items-center justify-center"><AppleIcon /></div>
                <span>Continue with Apple</span>

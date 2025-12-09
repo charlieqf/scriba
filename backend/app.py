@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from flask import request
 
 load_dotenv()
 
@@ -72,6 +75,54 @@ def db_test():
         return jsonify({"status": "success", "message": "Database connected successfully"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/auth/social-login', methods=['POST'])
+def social_login():
+    data = request.json
+    token = data.get('token')
+    provider = data.get('provider')
+
+    if not token or provider != 'google':
+        return jsonify({"success": False, "message": "Invalid provider or token missing"}), 400
+
+    try:
+        # Verify the token with Google
+        # In a real app, replace "YOUR_GOOGLE_CLIENT_ID" with os.getenv('GOOGLE_CLIENT_ID')
+        # and pass it as the second argument to verify_oauth2_token
+        id_info = id_token.verify_oauth2_token(
+            token, 
+            google_requests.Request(), 
+            audience=os.getenv('GOOGLE_CLIENT_ID')
+        )
+
+        email = id_info.get('email')
+        name = id_info.get('name')
+        
+        # Check if user exists
+        user = User.query.filter_by(email=email).first()
+        
+        if not user:
+            # Create new user
+            user = User(email=email, name=name)
+            db.session.add(user)
+            db.session.commit()
+            print(f"Created new user: {email}")
+        else:
+            print(f"Found existing user: {email}")
+
+        # In a real app, you would generate a JWT here. 
+        # For now, we'll return the user info.
+        return jsonify({
+            "success": True,
+            "token": "mock_session_token_123", # Replace with real JWT generation
+            "user": user.to_dict()
+        })
+
+    except ValueError as e:
+        # Invalid token
+        return jsonify({"success": False, "message": f"Token verification failed: {str(e)}"}), 401
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
