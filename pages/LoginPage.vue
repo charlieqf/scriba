@@ -214,7 +214,7 @@ const getButtonClass = (variant: ButtonVariant) => {
           <div class="mb-6">
              <img :src="logoImg" alt="Scriba" class="w-48 h-auto object-contain" />
           </div>
-          <h2 class="text-2xl font-bold text-slate-900 mb-6">Log in or sign up</h2>
+          <h2 class="text-xl font-bold text-slate-900 mb-6">Log in or Sign up</h2>
         </div>
 
         <div class="space-y-4">
