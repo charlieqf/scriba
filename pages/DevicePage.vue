@@ -109,7 +109,15 @@ const {
 } = useBluetoothService();
 
 // Local state
-const userName = ref('Sarah'); // Would come from auth service
+const props = defineProps<{ user?: any }>();
+
+// Computed
+const userName = computed(() => {
+  if (props.user?.name) {
+    return props.user.name.split(' ')[0]; // First name
+  }
+  return 'User';
+});
 const showAddDeviceModal = ref(false);
 const showSettingsModal = ref(false);
 const isConnecting = ref(false);

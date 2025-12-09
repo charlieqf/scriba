@@ -9,8 +9,8 @@
           <User :size="40" />
         </div>
         <div class="user-info">
-          <h2>Sarah Thompson</h2>
-          <p>Physical Therapist (PT)</p>
+          <h2>{{ user?.name || 'Guest User' }}</h2>
+          <p>{{ user?.email || 'Physical Therapist' }}</p>
         </div>
       </div>
 
@@ -42,6 +42,8 @@
 
 <script setup lang="ts">
 import { User, Settings, HelpCircle, Mail, LogOut, ChevronRight } from 'lucide-vue-next';
+
+defineProps<{ user?: any }>();
 
 const emit = defineEmits(['logout']);
 

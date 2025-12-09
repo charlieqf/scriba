@@ -9,9 +9,9 @@
     <!-- Authenticated State -->
     <template v-else>
       <!-- Page Content -->
-      <DevicePage v-if="currentTab === 'device'" />
+      <DevicePage v-if="currentTab === 'device'" :user="currentUser" />
       <PatientsPage v-else-if="currentTab === 'patients'" />
-      <ProfilePage v-else-if="currentTab === 'profile'" @logout="handleLogout" />
+      <ProfilePage v-else-if="currentTab === 'profile'" :user="currentUser" @logout="handleLogout" />
 
       <!-- Bottom Navigation -->
       <BottomNavigation 
@@ -32,23 +32,27 @@ import ProfilePage from './pages/ProfilePage.vue';
 import BottomNavigation from './components/BottomNavigation.vue';
 
 const isAuthenticated = ref(false);
+const currentUser = ref<any>(null);
 const currentTab = ref('device');
 
 // Check for existing session on mount
 onMounted(() => {
   const user = authService.getCurrentUser();
   if (user) {
+    currentUser.value = user;
     isAuthenticated.value = true;
   }
 });
 
 function handleLoginSuccess(user: any) {
+  currentUser.value = user;
   isAuthenticated.value = true;
 }
 
 function handleLogout() {
   authService.logout();
   isAuthenticated.value = false;
+  currentUser.value = null;
   currentTab.value = 'device'; // Reset tab
 }
 </script>
