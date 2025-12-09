@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { AppleIcon, FacebookIcon } from '../components/icons';
 import { authService } from '../services/authService';
 import logoImg from '../assets/logo.png';
+import logoIcon from '../assets/logo_icon.png';
 import { ArrowLeft, ScanFace, X } from 'lucide-vue-next';
 import GoogleLoginButton from '../components/GoogleLoginButton.vue';
 
@@ -74,7 +75,6 @@ onMounted(async () => {
 });
 
 const handleSocialLogin = async (provider: string, loginFn: () => Promise<any>) => {
-// ... existing social login code ...
   loading.value = true;
   try {
     const result = await loginFn();
@@ -356,11 +356,8 @@ const getButtonClass = (variant: ButtonVariant) => {
         </button>
 
         <div class="flex flex-col items-center mb-8 mt-8">
-          <div class="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-teal-600/20">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-6 h-6 text-white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-             </svg>
+          <div class="mb-4">
+             <img :src="logoIcon" alt="Logo" class="w-16 h-16 object-contain" />
           </div>
           <h2 class="text-2xl font-bold text-slate-900 mb-1">
             {{ step === 'signup_password' ? "Create your account" : "Welcome back" }}
