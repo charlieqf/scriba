@@ -59,8 +59,17 @@
      +-----> [TiDB Cloud] (数据存储 - MySQL 兼容)
      |
      +-----> [Cloudinary] (媒体存储 - 图片/音频/视频/文档)
+     +-----> [Cloudinary] (媒体存储 - 图片/音频/视频/文档)
              *Tip: 多个应用可共用一个 Cloudinary 账号，通过 upload_preset 或 folder (如 /scriba) 隔离资源。*
-```
+
+### 云平台选择 (Cloud Providers)
+目前架构支持多云部署：
+1.  **Vercel + Railway** (当前): 最快上手，零运维。
+2.  **Google Cloud Platform (GCP)** (可选):
+    *   Frontend: Firebase Hosting
+    *   Backend: Cloud Run (Serverless 容器)
+    *   *适合*: 深度集成 Google 服务或需要极高扩展性时。
+
 
 
 ---
