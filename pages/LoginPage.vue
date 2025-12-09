@@ -146,7 +146,7 @@ const handleFinalAuth = async () => {
 
 // --- Styles Helper ---
 const getButtonClass = (variant: ButtonVariant) => {
-  const base = "w-full flex items-center justify-center space-x-3 py-3 px-4 rounded-full font-semibold text-[15px] transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed";
+  const base = "w-full flex items-center justify-center space-x-3 py-4 px-4 rounded-full font-semibold text-[15px] transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed";
   const variants = {
     outline: "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50",
     black: "bg-slate-900 text-white hover:bg-slate-800 border border-transparent",
@@ -172,7 +172,7 @@ const getButtonClass = (variant: ButtonVariant) => {
           <div class="mb-10 relative">
             <img :src="logoImg" alt="Scriba" class="w-48 h-auto object-contain" />
           </div>
-          <p class="mt-2 text-slate-500 text-sm font-medium">AI Clinical Reports</p>
+          <p class="mt-2 text-slate-500 text-sm font-medium">AI Clinical Badge</p>
         </div>
 
         <div class="space-y-3 w-full animate-[slideUp_0.6s_ease-out_forwards] translate-y-10 opacity-0" style="animation-delay: 0.2s">
@@ -211,16 +211,10 @@ const getButtonClass = (variant: ButtonVariant) => {
         </button>
 
         <div class="flex flex-col items-center mb-10 mt-8">
-          <div class="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-teal-600/20">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-6 h-6 text-white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-             </svg>
+          <div class="mb-6">
+             <img :src="logoImg" alt="Scriba" class="w-48 h-auto object-contain" />
           </div>
-          <h2 class="text-2xl font-bold text-slate-900 mb-2">Log in or sign up</h2>
-          <p class="text-center text-slate-500 text-[15px] leading-relaxed max-w-xs">
-            Generate professional clinical reports efficiently and securely.
-          </p>
+          <h2 class="text-2xl font-bold text-slate-900 mb-6">Log in or sign up</h2>
         </div>
 
         <div class="space-y-4">
@@ -253,6 +247,7 @@ const getButtonClass = (variant: ButtonVariant) => {
           <div class="space-y-3 pb-8">
             <GoogleLoginButton 
               :client-id="googleClientId" 
+              width="400"
               @success="handleGoogleSuccess" 
               @error="handleGoogleError"
               class="w-full flex justify-center"
