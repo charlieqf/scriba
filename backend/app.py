@@ -134,6 +134,28 @@ def social_login():
             )
             email = id_info.get('email')
             name = id_info.get('name')
+
+        elif provider == 'facebook':
+            # Verify against Graph API
+            fb_url = "https://graph.facebook.com/me"
+            params = {
+                'access_token': token,
+                'fields': 'id,name,email'
+            }
+            resp = requests.get(fb_url, params=params)
+            
+            if resp.status_code != 200:
+                 return jsonify({"success": False, "message": "Facebook API error"}), 401
+            
+            user_info = resp.json()
+            email = user_info.get('email')
+            name = user_info.get('name')
+            
+            # Fallback if no email (e.g. phone number account)
+            if not email:
+                 # Use ID as pseudo-email for internal uniqueness if real email is missing
+                 # In production, might want to handle this differently (ask user nicely)
+                 email = f"{user_info['id']}@facebook.scriba.user"
         
         elif provider == 'apple':
             # Decode the Identity Token
