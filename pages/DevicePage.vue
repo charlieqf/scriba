@@ -3,9 +3,9 @@
     <!-- Header -->
     <header class="page-header">
       <div class="header-left">
-          <div class="button-inner">
-            <Mic :size="36" />
-          </div>
+        <div class="logo-icon-img">
+          <img :src="deviceIconImg" alt="Device Icon" />
+        </div>
         <h1>Device</h1>
       </div>
       <div class="header-right">
