@@ -47,6 +47,8 @@ const clearEmail = () => {
   emailError.value = '';
 };
 
+const emit = defineEmits(['login-success']);
+
 // --- Methods ---
 const { signIn: signInWithApple } = useAppleLogin(appleClientId, appleRedirectUri);
 
@@ -56,7 +58,7 @@ const handleSocialSuccess = async (provider: 'google' | 'apple' | 'facebook', to
     const result = await authService.socialLogin(provider, token);
     if (result.success) {
       console.log('Logged in user:', result.user);
-      alert(`Successfully logged in with ${provider === 'apple' ? 'Apple' : (provider === 'google' ? 'Google' : 'Facebook')}`);
+      emit('login-success', result.user);
     } else {
       alert(result.error);
     }
@@ -84,7 +86,7 @@ const handleSocialLogin = async (provider: string, loginFn: () => Promise<any>) 
     const result = await loginFn();
     if (result.success) {
       console.log('Logged in user:', result.user);
-      alert(`Successfully logged in with ${provider === 'face_id' ? 'Face ID' : provider}`);
+      emit('login-success', result.user);
     }
   } catch (err) {
     console.error(err);
@@ -161,10 +163,7 @@ const handleFinalAuth = async () => {
       } else {
           // Login success
           console.log('Auth success:', result.user);
-          if (enableFaceId.value) {
-            console.log('Face ID enabled for future logins');
-          }
-          alert('Welcome back!');
+          emit('login-success', result.user);
       }
     } else {
       alert(result.error || 'Authentication failed');
@@ -184,9 +183,10 @@ onMounted(async () => {
         try {
             const result = await authService.verifyEmail(token);
             if (result.success) {
-                alert('Email verified successfully! You are now logged in.');
-                // Clear URL
+                // Clear URL but wait for alert
                 window.history.replaceState({}, document.title, window.location.pathname);
+                alert('Email verified successfully! You are now logged in.');
+                emit('login-success', result.user);
             } else {
                 alert('Verification failed: ' + result.error);
             }
@@ -211,6 +211,7 @@ const getButtonClass = (variant: ButtonVariant) => {
   };
   return `${base} ${variants[variant]}`;
 };
+
 </script>
 
 <template>

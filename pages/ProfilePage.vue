@@ -30,7 +30,7 @@
           <span>Contact Administrator</span>
           <ChevronRight :size="20" />
         </button>
-        <button class="menu-item logout">
+        <button class="menu-item logout" @click="handleLogout">
           <LogOut :size="20" />
           <span>Log Out</span>
           <ChevronRight :size="20" />
@@ -43,8 +43,15 @@
 <script setup lang="ts">
 import { User, Settings, HelpCircle, Mail, LogOut, ChevronRight } from 'lucide-vue-next';
 
+const emit = defineEmits(['logout']);
+
 function handleContactAdmin() {
   alert('Contact Administrator feature - for role change requests and support.');
+}
+
+function handleLogout() {
+  // Logic is handled by parent App.vue via event
+  emit('logout');
 }
 </script>
 
