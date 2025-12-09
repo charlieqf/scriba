@@ -11,6 +11,7 @@ export interface AuthResponse {
   success: boolean;
   user?: User;
   error?: string;
+  message?: string;
 }
 
 // Keeping architecture types for reference

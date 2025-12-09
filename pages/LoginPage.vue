@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { AppleIcon, FacebookIcon } from '../components/icons';
 import { authService } from '../services/authService';
 import logoImg from '../assets/logo.png';
-import { ArrowLeft, ScanFace } from 'lucide-vue-next';
+import { ArrowLeft, ScanFace, X } from 'lucide-vue-next';
 import GoogleLoginButton from '../components/GoogleLoginButton.vue';
 
 import { facebookAuth } from '../services/social/facebookAuth';
@@ -24,11 +24,57 @@ const loading = ref(false);
 const email = ref('');
 const password = ref('');
 const enableFaceId = ref(false);
+const emailError = ref('');
+const verificationPending = ref(false);
+const verificationMessage = ref('');
+
+const validateEmail = () => {
+  if (!email.value) {
+    emailError.value = '';
+    return;
+  }
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!re.test(email.value)) {
+    emailError.value = 'Invalid email format';
+  } else {
+    emailError.value = '';
+  }
+};
+
+const clearEmail = () => {
+  email.value = '';
+  emailError.value = '';
+};
 
 // --- Methods ---
 const { signIn: signInWithApple } = useAppleLogin(appleClientId, appleRedirectUri);
 
+import { onMounted } from 'vue';
+
+onMounted(async () => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+        loading.value = true;
+        try {
+            const result = await authService.verifyEmail(token);
+            if (result.success) {
+                alert('Email verified successfully! You are now logged in.');
+                // Clear URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                alert('Verification failed: ' + result.error);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            loading.value = false;
+        }
+    }
+});
+
 const handleSocialLogin = async (provider: string, loginFn: () => Promise<any>) => {
+// ... existing social login code ...
   loading.value = true;
   try {
     const result = await loginFn();
@@ -78,7 +124,6 @@ const handleAppleLogin = async () => {
   loading.value = true;
   try {
     const result = await signInWithApple();
-    // Apple ID result structure: { success: true, data: { authorization: { id_token: '...' } } }
     if (result.success && result.data?.authorization?.id_token) {
         await handleSocialSuccess('apple', result.data.authorization.id_token);
     } else {
@@ -129,11 +174,18 @@ const handleFinalAuth = async () => {
     }
 
     if (result.success) {
-      console.log('Auth success:', result.user);
-      if (enableFaceId.value) {
-        console.log('Face ID enabled for future logins');
+      if (step.value === 'signup_password' && result.message) {
+          // Registration success, verify email
+          verificationPending.value = true;
+          verificationMessage.value = result.message;
+      } else {
+          // Login success
+          console.log('Auth success:', result.user);
+          if (enableFaceId.value) {
+            console.log('Face ID enabled for future logins');
+          }
+          alert('Welcome back!');
       }
-      alert(step.value === 'login_password' ? 'Welcome back!' : 'Account created!');
     } else {
       alert(result.error || 'Authentication failed');
     }
@@ -218,22 +270,49 @@ const getButtonClass = (variant: ButtonVariant) => {
         </div>
 
         <div class="space-y-4">
-          <div class="space-y-2">
-             <input 
-               type="email" 
-               placeholder="Email address" 
-               v-model="email"
-               class="w-full px-4 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-base"
-               autofocus
-             />
+          <div class="relative mb-2">
+            <div class="relative">
+              <input 
+                type="email" 
+                id="email"
+                v-model="email"
+                @blur="validateEmail"
+                @input="emailError = ''"
+                class="peer w-full px-4 pt-6 pb-2 rounded-xl border bg-white text-slate-900 placeholder-transparent focus:outline-none focus:ring-2 transition-all text-base"
+                :class="emailError ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : 'border-slate-200 focus:ring-teal-500/20 focus:border-teal-500'"
+                placeholder="Email address"
+                autofocus
+              />
+              <label 
+                for="email"
+                class="absolute left-4 top-4 text-slate-400 text-xs transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-slate-400 peer-placeholder-shown:top-4 peer-focus:top-2 peer-focus:text-xs peer-focus:text-teal-600 select-none pointer-events-none"
+                :class="emailError ? 'peer-focus:text-red-500 text-red-500' : ''"
+              >
+                Email address
+              </label>
+              
+              <button 
+                v-if="email" 
+                @click="clearEmail"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+            <p v-if="emailError" class="text-red-500 text-xs mt-1 ml-1">{{ emailError }}</p>
           </div>
           
           <button 
-             :class="[getButtonClass('teal'), loading ? 'opacity-80' : '']" 
-             @click="handleEmailContinue"
+             :class="[getButtonClass('teal'), (loading || emailError) ? 'opacity-80 cursor-not-allowed' : '']" 
+             @click="!emailError && handleEmailContinue()"
+             :disabled="!!emailError"
           >
              {{ loading ? "Checking..." : "Continue" }}
           </button>
+          
+          <p class="text-center text-xs text-slate-400 mt-4 px-4 leading-relaxed">
+            By continuing, you agree to our <a href="#" class="underline hover:text-slate-500">Terms of Service</a> and <a href="#" class="underline hover:text-slate-500">Privacy Policy</a>.
+          </p>
 
           <div class="relative py-4">
             <div class="absolute inset-0 flex items-center">
@@ -324,6 +403,28 @@ const getButtonClass = (variant: ButtonVariant) => {
              {{ loading ? "Processing..." : (step === 'signup_password' ? "Create account" : "Log in") }}
           </button>
         </div>
+      </div>
+    </Transition>
+    <!-- 4. Verification Sent View -->
+    <Transition name="slide-up">
+      <div v-if="verificationPending" class="flex-1 w-full max-w-md px-6 flex flex-col z-20 pt-12 absolute inset-0 m-auto h-full bg-slate-50 items-center justify-center">
+        <div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mb-6 text-teal-600">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-8 h-8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+             <polyline points="22,6 12,13 2,6"></polyline>
+           </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900 mb-2">Check your email</h2>
+        <p class="text-center text-slate-500 text-[15px] leading-relaxed max-w-xs mb-8">
+           {{ verificationMessage || "We've sent a verification link to your email." }}
+        </p>
+        
+        <button 
+           :class="getButtonClass('outline')" 
+           @click="verificationPending = false; step = 'login_password'"
+        >
+           Back to Login
+        </button>
       </div>
     </Transition>
   </div>
