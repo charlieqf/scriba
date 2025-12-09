@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { AppleIcon, FacebookIcon } from '../components/icons';
 import { authService } from '../services/authService';
+import logoImg from '../assets/logo.png';
 import { ArrowLeft, ScanFace } from 'lucide-vue-next';
 import GoogleLoginButton from '../components/GoogleLoginButton.vue';
 
@@ -168,16 +169,9 @@ const getButtonClass = (variant: ButtonVariant) => {
     <Transition name="fade">
       <div v-if="step === 'landing'" class="flex-1 w-full max-w-md px-6 flex flex-col justify-end pb-10 z-10 absolute inset-0 m-auto h-full">
         <div class="flex-1 flex flex-col items-center justify-center animate-[fadeIn_0.8s_ease-out]">
-          <div class="mb-8 relative">
-            <div class="w-24 h-24 bg-teal-600 rounded-full shadow-xl flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-12 h-12 text-white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </div>
-            <div class="absolute inset-0 bg-teal-400 blur-2xl opacity-20 -z-10 rounded-full"></div>
+          <div class="mb-4 relative">
+            <img :src="logoImg" alt="Scriba" class="h-24 w-auto object-contain" />
           </div>
-          <h1 class="text-4xl font-bold text-slate-900 tracking-tight">Scriba</h1>
           <p class="mt-2 text-slate-500 text-sm font-medium">AI Clinical Reports</p>
         </div>
 
