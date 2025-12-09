@@ -352,7 +352,7 @@ const getButtonClass = (variant: ButtonVariant) => {
 
         <div class="flex flex-col items-center mb-8 mt-8">
           <div class="mb-4">
-             <img :src="logoIcon" alt="Logo" class="w-16 h-16 object-contain" />
+             <img :src="logoImg" alt="Logo" class="w-48 h-auto object-contain" />
           </div>
           <h2 class="text-2xl font-bold text-slate-900 mb-1">
             {{ step === 'signup_password' ? "Create your account" : "Welcome back" }}
