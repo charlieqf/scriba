@@ -192,4 +192,4 @@ def social_login():
         return jsonify({"success": False, "message": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)
