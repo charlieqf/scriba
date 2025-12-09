@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { AppleIcon, FacebookIcon } from '../components/icons';
+import { ref, onMounted } from 'vue';
+import { AppleIcon, FacebookIcon, GoogleIcon } from '../components/icons';
 import { authService } from '../services/authService';
 import logoImg from '../assets/logo.png';
 import logoIcon from '../assets/logo_icon.png';
 import { ArrowLeft, ScanFace, X } from 'lucide-vue-next';
-import GoogleLoginButton from '../components/GoogleLoginButton.vue';
 
 import { facebookAuth } from '../services/social/facebookAuth';
 import { appleAuth } from '../services/social/appleAuth';
 import { useAppleLogin } from '../composables/useAppleLogin';
+import { useGoogleLogin } from '../composables/useGoogleLogin';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER';
 const appleClientId = import.meta.env.VITE_APPLE_CLIENT_ID || '';
@@ -50,27 +50,31 @@ const clearEmail = () => {
 // --- Methods ---
 const { signIn: signInWithApple } = useAppleLogin(appleClientId, appleRedirectUri);
 
-import { onMounted } from 'vue';
+const handleSocialSuccess = async (provider: 'google' | 'apple' | 'facebook', token: string) => {
+  loading.value = true;
+  try {
+    const result = await authService.socialLogin(provider, token);
+    if (result.success) {
+      console.log('Logged in user:', result.user);
+      alert(`Successfully logged in with ${provider === 'apple' ? 'Apple' : (provider === 'google' ? 'Google' : 'Facebook')}`);
+    } else {
+      alert(result.error);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    loading.value = false;
+  }
+};
 
-onMounted(async () => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    if (token) {
-        loading.value = true;
-        try {
-            const result = await authService.verifyEmail(token);
-            if (result.success) {
-                alert('Email verified successfully! You are now logged in.');
-                // Clear URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            } else {
-                alert('Verification failed: ' + result.error);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            loading.value = false;
-        }
+const handleGoogleSuccess = (token: string) => handleSocialSuccess('google', token);
+
+const { login: googleLogin } = useGoogleLogin(googleClientId, (response) => {
+    if (response.credential) {
+         handleGoogleSuccess(response.credential);
+    } else {
+         console.error("Google login failed", response);
+         alert('Google Login Failed');
     }
 });
 
@@ -81,23 +85,6 @@ const handleSocialLogin = async (provider: string, loginFn: () => Promise<any>) 
     if (result.success) {
       console.log('Logged in user:', result.user);
       alert(`Successfully logged in with ${provider === 'face_id' ? 'Face ID' : provider}`);
-    }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loading.value = false;
-  }
-};
-
-const handleSocialSuccess = async (provider: 'google' | 'apple' | 'facebook', token: string) => {
-  loading.value = true;
-  try {
-    const result = await authService.socialLogin(provider, token);
-    if (result.success) {
-      console.log('Logged in user:', result.user);
-      alert(`Successfully logged in with ${provider === 'apple' ? 'Apple' : (provider === 'google' ? 'Google' : 'Facebook')}`);
-    } else {
-      alert(result.error);
     }
   } catch (err) {
     console.error(err);
@@ -136,13 +123,6 @@ const handleAppleLogin = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-const handleGoogleSuccess = (token: string) => handleSocialSuccess('google', token);
-
-const handleGoogleError = (msg: string) => {
-  console.error('Google Login Error:', msg);
-  alert('Google Login Failed');
 };
 
 const handleEmailContinue = async () => {
@@ -196,6 +176,28 @@ const handleFinalAuth = async () => {
   }
 };
 
+onMounted(async () => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+        loading.value = true;
+        try {
+            const result = await authService.verifyEmail(token);
+            if (result.success) {
+                alert('Email verified successfully! You are now logged in.');
+                // Clear URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                alert('Verification failed: ' + result.error);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            loading.value = false;
+        }
+    }
+});
+
 // --- Styles Helper ---
 const getButtonClass = (variant: ButtonVariant) => {
   const base = "w-full flex items-center justify-center space-x-3 py-4 px-4 rounded-full font-semibold text-[15px] transition-all duration-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed";
@@ -233,14 +235,10 @@ const getButtonClass = (variant: ButtonVariant) => {
             <span>Continue with Apple</span>
           </button>
           
-          <GoogleLoginButton 
-            :client-id="googleClientId" 
-            container-id="google-btn-landing"
-            width="400"
-            @success="handleGoogleSuccess" 
-            @error="handleGoogleError"
-            class="w-full flex justify-center"
-          />
+          <button :class="getButtonClass('outline')" @click="googleLogin">
+             <div class="w-5 h-5 flex items-center justify-center"><GoogleIcon class="w-5 h-5" /></div>
+             <span>Continue with Google</span>
+          </button>
           
           <button :class="getButtonClass('blue')" @click="handleFacebookLogin">
              <div class="w-5 h-5 flex items-center justify-center"><FacebookIcon class="w-5 h-5" /></div>
@@ -324,17 +322,14 @@ const getButtonClass = (variant: ButtonVariant) => {
           </div>
 
           <div class="space-y-3 pb-8">
-            <GoogleLoginButton 
-              :client-id="googleClientId" 
-              width="400"
-              @success="handleGoogleSuccess" 
-              @error="handleGoogleError"
-              class="w-full flex justify-center"
-            />
-          <button :class="getButtonClass('black')" @click="handleAppleLogin">
-            <div class="w-5 h-5 flex items-center justify-center"><AppleIcon /></div>
-            <span>Continue with Apple</span>
-          </button>
+            <button :class="getButtonClass('outline')" @click="googleLogin">
+               <div class="w-5 h-5 flex items-center justify-center"><GoogleIcon class="w-5 h-5" /></div>
+               <span>Continue with Google</span>
+            </button>
+            <button :class="getButtonClass('black')" @click="handleAppleLogin">
+              <div class="w-5 h-5 flex items-center justify-center"><AppleIcon /></div>
+              <span>Continue with Apple</span>
+            </button>
             <button :class="getButtonClass('blue')" @click="handleFacebookLogin">
                <div class="w-5 h-5 flex items-center justify-center"><FacebookIcon class="w-5 h-5" /></div>
                <span>Continue with Facebook</span>

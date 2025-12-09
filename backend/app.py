@@ -222,14 +222,28 @@ def social_login():
 
     try:
         if provider == 'google':
-            # Verify the token with Google
-            id_info = id_token.verify_oauth2_token(
-                token, 
-                google_requests.Request(), 
-                audience=os.getenv('GOOGLE_CLIENT_ID')
-            )
-            email = id_info.get('email')
-            name = id_info.get('name')
+            # Try to verify as ID Token first (JWT)
+            try:
+                id_info = id_token.verify_oauth2_token(
+                    token, 
+                    google_requests.Request(), 
+                    audience=os.getenv('GOOGLE_CLIENT_ID')
+                )
+                email = id_info.get('email')
+                name = id_info.get('name')
+            except Exception:
+                # Fallback: Try as Access Token
+                try:
+                    userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
+                    resp = requests.get(userinfo_url, headers={'Authorization': f'Bearer {token}'})
+                    if resp.status_code == 200:
+                        user_info = resp.json()
+                        email = user_info.get('email')
+                        name = user_info.get('name')
+                    else:
+                        raise Exception("Invalid Access Token")
+                except Exception as e:
+                    return jsonify({"success": False, "message": f"Google auth failed: {str(e)}"}), 401
 
         elif provider == 'facebook':
             # Verify against Graph API
