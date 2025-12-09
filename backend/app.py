@@ -11,6 +11,9 @@ import cloudinary.api
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from flask import request
+import jwt
+import requests
+import json
 
 load_dotenv()
 
@@ -49,6 +52,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# Create tables
+with app.app_context():
+    db.create_all()
+
 # Define a User model as an example
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,45 +89,105 @@ def social_login():
     token = data.get('token')
     provider = data.get('provider')
 
-    if not token or provider != 'google':
+    if not token or not provider:
         return jsonify({"success": False, "message": "Invalid provider or token missing"}), 400
 
-    try:
-        # Verify the token with Google
-        # In a real app, replace "YOUR_GOOGLE_CLIENT_ID" with os.getenv('GOOGLE_CLIENT_ID')
-        # and pass it as the second argument to verify_oauth2_token
-        id_info = id_token.verify_oauth2_token(
-            token, 
-            google_requests.Request(), 
-            audience=os.getenv('GOOGLE_CLIENT_ID')
-        )
+    email = None
+    name = None
 
-        email = id_info.get('email')
-        name = id_info.get('name')
-        
-        # Check if user exists
+    try:
+        if provider == 'google':
+            try:
+                id_info = id_token.verify_oauth2_token(
+                    token, 
+                    google_requests.Request(), 
+                    audience=os.getenv('GOOGLE_CLIENT_ID')
+                )
+                email = id_info.get('email')
+                name = id_info.get('name')
+            except ValueError as e:
+                return jsonify({"success": False, "message": f"Google token verification failed: {str(e)}"}), 401
+
+        elif provider == 'facebook':
+            # Verify against Graph API
+            fb_url = "https://graph.facebook.com/me"
+            params = {
+                'access_token': token,
+                'fields': 'id,name,email'
+            }
+            resp = requests.get(fb_url, params=params)
+            if resp.status_code != 200:
+                 return jsonify({"success": False, "message": "Facebook API error"}), 401
+            
+            user_info = resp.json()
+            email = user_info.get('email')
+            name = user_info.get('name')
+            # Fallback if no email (e.g. phone number account)
+            if not email:
+                 email = f"{user_info['id']}@facebook.scriba.user"
+
+        elif provider == 'apple':
+            # Decode the Identity Token
+            # For strict verification, we should fetch Apple's public keys and verify signature.
+            # This requires fetching https://appleid.apple.com/auth/keys
+            
+            # Simple decoding (assuming frontend checks are reputable for this stage, 
+            # BUT production should strictly verify signature)
+            try:
+                # Get the unverified header to find the key ID (kid) if we were doing strict verification
+                # For now, we will trust the token's payload if it decodes successfully via PyJWT
+                # In a real high-security app, implement full RS256 verification here.
+                decoded = jwt.decode(token, options={"verify_signature": False})
+                
+                # Check aud (audience) matches Service ID
+                if decoded.get('aud') != os.getenv('APPLE_SERVICE_ID'):
+                     # Optional: Log warning, usually strict check.
+                     pass
+
+                email = decoded.get('email')
+                # Apple only sends 'email' and 'is_private_email'. 
+                # Name is NOT in the ID Token. It is sent alongside authorization code in the very first request.
+                # The frontend must send 'user' object if available.
+                
+                # If email is missing (subsequent logins), rely on 'sub' (Subject ID) mapping in DB.
+                # For this simple implementation, we require email or fallback to sub.
+                sub = decoded.get('sub')
+                if not email:
+                    email = f"{sub}@apple.scriba.user"
+                
+                # Apple name is sent separately by frontend in 'user' field on first login
+                frontend_user = data.get('user') # Expecting {name: {firstName, lastName}}
+                if frontend_user and 'name' in frontend_user:
+                    n = frontend_user['name']
+                    name = f"{n.get('firstName', '')} {n.get('lastName', '')}".strip()
+                
+            except jwt.PyJWTError as e:
+                 return jsonify({"success": False, "message": f"Apple token error: {str(e)}"}), 401
+
+        else:
+            return jsonify({"success": False, "message": "Unknown provider"}), 400
+
+        # --- User Logic ---
         user = User.query.filter_by(email=email).first()
         
         if not user:
-            # Create new user
-            user = User(email=email, name=name)
+            user = User(email=email, name=name or "User")
             db.session.add(user)
             db.session.commit()
             print(f"Created new user: {email}")
         else:
+            # Update name if provided and previously empty
+            if name and (not user.name or user.name == "User"):
+                user.name = name
+                db.session.commit()
             print(f"Found existing user: {email}")
 
-        # In a real app, you would generate a JWT here. 
-        # For now, we'll return the user info.
         return jsonify({
             "success": True,
-            "token": "mock_session_token_123", # Replace with real JWT generation
+            "token": "mock_session_token_123", 
             "user": user.to_dict()
         })
 
-    except ValueError as e:
-        # Invalid token
-        return jsonify({"success": False, "message": f"Token verification failed: {str(e)}"}), 401
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 

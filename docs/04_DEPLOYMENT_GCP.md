@@ -31,7 +31,7 @@ gcloud run deploy scriba-backend \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars="CLOUDINARY_URL=...,DATABASE_URL=..."
+  --set-env-vars="CLOUDINARY_URL=...,DATABASE_URL=...,GOOGLE_CLIENT_ID=..."
 ```
 *Note: Replace `...` with your actual `.env` values.*
 
@@ -55,6 +55,7 @@ gcloud run deploy scriba-backend \
 Once Backend is deployed to Cloud Run, it will give you a URL (e.g., `https://scriba-backend-xyz.a.run.app`).
 Update your Frontend environment:
 - If using Vercel/Firebase: Set `VITE_API_URL` to this Cloud Run URL.
+- Ensure `VITE_GOOGLE_CLIENT_ID` is also set in your frontend build environment (e.g., `.env.production` for Firebase).
 
 ## Summary
 The migration is **highly feasible** and requires minimal code changes (just adding a Dockerfile).

@@ -8,3 +8,5 @@ certifi
 cloudinary
 gunicorn
 google-auth
+PyJWT[crypto]
+cryptography

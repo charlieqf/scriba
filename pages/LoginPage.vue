@@ -5,8 +5,10 @@ import { authService } from '../services/authService';
 import { ArrowLeft, ScanFace } from 'lucide-vue-next';
 import GoogleLoginButton from '../components/GoogleLoginButton.vue';
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER';
+import { facebookAuth } from '../services/social/facebookAuth';
+import { appleAuth } from '../services/social/appleAuth';
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER';
 
 // --- Types ---
 type AuthStep = 'landing' | 'email_entry' | 'login_password' | 'signup_password';
@@ -20,19 +22,46 @@ const password = ref('');
 const enableFaceId = ref(false);
 
 // --- Methods ---
-const handleSocialLogin = async (provider: string, loginFn: () => Promise<any>) => {
-  loading.value = true;
-  try {
-    const result = await loginFn();
-    if (result.success) {
-      console.log('Logged in user:', result.user);
-      alert(`Successfully logged in with ${provider === 'face_id' ? 'Face ID' : provider}`);
+const handleFacebookLogin = async () => {
+    loading.value = true;
+    try {
+        const result = await facebookAuth.login();
+        if (result && result.token) {
+            // Send to backend
+            const authResult = await authService.socialLogin('facebook', result.token);
+            if (authResult.success) {
+                console.log('Logged in user:', authResult.user);
+                alert('Successfully logged in with Facebook');
+            } else {
+                alert(authResult.error);
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        loading.value = false;
     }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loading.value = false;
-  }
+};
+
+const handleAppleLogin = async () => {
+    loading.value = true;
+    try {
+        const result = await appleAuth.login();
+        if (result && result.token) {
+             // Send to backend (pass user object if available for name extraction)
+            const authResult = await authService.socialLogin('apple', result.token);
+            if (authResult.success) {
+                console.log('Logged in user:', authResult.user);
+                alert('Successfully logged in with Apple');
+            } else {
+                alert(authResult.error);
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        loading.value = false;
+    }
 };
 
 const handleGoogleSuccess = async (token: string) => {
@@ -140,7 +169,7 @@ const getButtonClass = (variant: ButtonVariant) => {
         </div>
 
         <div class="space-y-3 w-full animate-[slideUp_0.6s_ease-out_forwards] translate-y-10 opacity-0" style="animation-delay: 0.2s">
-          <button :class="getButtonClass('black')" @click="handleSocialLogin('apple', authService.loginWithApple)">
+          <button :class="getButtonClass('black')" @click="handleAppleLogin">
             <div class="w-5 h-5 flex items-center justify-center"><AppleIcon /></div>
             <span>Continue with Apple</span>
           </button>
@@ -154,7 +183,7 @@ const getButtonClass = (variant: ButtonVariant) => {
             class="w-full flex justify-center"
           />
           
-          <button :class="getButtonClass('blue')" @click="handleSocialLogin('facebook', authService.loginWithFacebook)">
+          <button :class="getButtonClass('blue')" @click="handleFacebookLogin">
              <div class="w-5 h-5 flex items-center justify-center"><FacebookIcon class="w-5 h-5" /></div>
              <span>Continue with Facebook</span>
           </button>
@@ -221,11 +250,11 @@ const getButtonClass = (variant: ButtonVariant) => {
               @error="handleGoogleError"
               class="w-full flex justify-center"
             />
-            <button :class="getButtonClass('black')" @click="handleSocialLogin('apple', authService.loginWithApple)">
+            <button :class="getButtonClass('black')" @click="handleAppleLogin">
                <div class="w-5 h-5 flex items-center justify-center"><AppleIcon /></div>
                <span>Continue with Apple</span>
             </button>
-            <button :class="getButtonClass('blue')" @click="handleSocialLogin('facebook', authService.loginWithFacebook)">
+            <button :class="getButtonClass('blue')" @click="handleFacebookLogin">
                <div class="w-5 h-5 flex items-center justify-center"><FacebookIcon class="w-5 h-5" /></div>
                <span>Continue with Facebook</span>
             </button>
