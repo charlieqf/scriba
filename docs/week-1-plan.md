@@ -1,21 +1,59 @@
-# Week 1 Development Plan: Bluetooth & Hardware Integration
+# Week 1 Development Plan: Native Platform Setup & Bluetooth Integration
 
-**Goal**: Implement robust Bluetooth Low Energy (BLE) connectivity with the Scriba Badge hardware.
+**Goal**: Initialize the native mobile project structure (iOS/Android) and implement robust Bluetooth Low Energy (BLE) connectivity with the Scriba Badge hardware.
 
 ## Key Objectives
-- [ ] Initialize BLE environment on mobile (iOS/Android via Capacitor/Cordova or Web Bluetooth if applicable, assumig Hybrid/Native wrapper).
+- [ ] **Set up Native Mobile Project** (Capacitor/React Native/Flutter - TBD based on team stack).
+- [ ] Initialize BLE environment on mobile (iOS/Android).
 - [ ] Implement Device Scanning & RSSI Display.
 - [ ] Implement Connection/Disconnection logic.
 - [ ] Implement "Main Badge" priority logic.
 - [ ] Read Badge Status (Battery, Firmware, Button States).
 
+---
+
 ## Detailed Tasks
 
-### 1. Project Setup & BLE Library Integration
+### 0. Native Project Initialization (Critical for App Store)
+
+> [!IMPORTANT]
+> This step is essential. Without proper native project setup, you cannot build for TestFlight or Google Play.
+
+#### iOS Setup
+- [ ] Install **Xcode** (latest stable, currently 15.x).
+- [ ] If using **Capacitor**: Run `npx cap add ios` to generate Xcode project.
+- [ ] Open `ios/App/App.xcworkspace` in Xcode.
+- [ ] Configure **Team & Bundle Identifier** (`com.scriba.app`) in Signing & Capabilities.
+- [ ] Add **required capabilities**: Bluetooth (Background Modes > Uses Bluetooth LE accessories).
+- [ ] Configure `Info.plist` usage descriptions:
+    - `NSBluetoothAlwaysUsageDescription`: "Scriba needs Bluetooth to connect to your Badge for audio recording."
+    - `NSBluetoothPeripheralUsageDescription`: (if needed for older iOS)
+    - `NSMicrophoneUsageDescription`: "Scriba needs microphone access to record clinical notes."
+
+#### Android Setup
+- [ ] Install **Android Studio** (latest stable).
+- [ ] If using **Capacitor**: Run `npx cap add android` to generate Android project.
+- [ ] Open `android/` folder in Android Studio.
+- [ ] Configure `applicationId` in `app/build.gradle` (`com.scriba.app`).
+- [ ] Set **minSdkVersion** (21+) and **targetSdkVersion** (34+).
+- [ ] Add permissions to `AndroidManifest.xml`:
+    - `<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />`
+    - `<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />`
+    - `<uses-permission android:name="android.permission.RECORD_AUDIO" />`
+    - `<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />` (required for BLE scan on Android 11 and below)
+- [ ] Create a **signing keystore** for release builds:
+    ```bash
+    keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+    ```
+    - Store securely! This is needed for Google Play upload.
+
+---
+
+### 1. BLE Library Integration
 - **Objective**: Ensure the app can access device Bluetooth hardware.
 - **Tasks**:
-    - Install necessary BLE plugins (e.g., `capacitor-community/bluetooth-le` or similar).
-    - Configure platform permissions (iOS `Info.plist`: `NSBluetoothAlwaysUsageDescription`; Android `AndroidManifest.xml`).
+    - Install necessary BLE plugins (e.g., `@capacitor-community/bluetooth-le` or `react-native-ble-plx`).
+    - Verify BLE initialization works on both iOS Simulator/Device and Android Emulator/Device.
     - Create a `BluetoothService` singleton to manage state.
 
 ### 2. Scanning & Discovery
@@ -46,7 +84,11 @@
     - Status indicators: Connecting, Connected, Disconnected.
     - Low Battery Alert (<10%) logic hook.
 
+---
+
 ## Definition of Done (DoD)
+- **iOS project builds and runs on a real iPhone.**
+- **Android project builds and runs on a real Android device.**
 - App can scan and identify Scriba Badges.
 - App can connect to a Badge and stay connected.
 - App displays real-time Battery level.
