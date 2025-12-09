@@ -14,6 +14,8 @@ from flask import request
 import jwt
 import requests
 import json
+import secrets
+from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 
@@ -37,7 +39,7 @@ if not os.getenv('CLOUDINARY_URL'):
 # TiDB Cloud Connection String requires specific SSL arguments usually, but basic connection works often.
 # Connection string format: mysql+pymysql://<user>:<password>@<host>:<port>/<dbname>?ssl_ca=/etc/ssl/cert.pem
 # Converting the provided user string format if necessary
-database_url = os.getenv('DATABASE_URL', '')
+database_url = os.getenv('DATABASE_URL', 'sqlite:///local.db') # Fallback to local sqlite for ease if needed
 print(f"DEBUG: Loaded DATABASE_URL: {database_url}") # Debug print
 # If using TiDB/MySQL and no SSL CA is provided in string, inject certifi
 if 'mysql' in database_url and 'ssl_ca' not in database_url:
@@ -52,23 +54,32 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Create tables
-with app.app_context():
-    db.create_all()
-
-# Define a User model as an example
+# Define a User model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(80), nullable=True)
+    password_hash = db.Column(db.String(256), nullable=True) # Nullable for social login users
+    is_active = db.Column(db.Boolean, default=True) # Default true for social, false for email (logic handled in routes)
+    activation_token = db.Column(db.String(100), nullable=True)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
         return {
             "id": self.id,
             "email": self.email,
-            "name": self.name
+            "name": self.name,
+            "is_active": self.is_active
         }
 
+# Create tables
+with app.app_context():
+    db.create_all()
 
 @app.route('/health')
 def health_check():
@@ -82,6 +93,120 @@ def db_test():
         return jsonify({"status": "success", "message": "Database connected successfully"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+def verify_apple_token(token, client_id):
+    try:
+        # Fetch Apple's public keys
+        apple_keys_url = "https://appleid.apple.com/auth/keys"
+        keys_response = requests.get(apple_keys_url)
+        keys_response.raise_for_status() # Raise an exception for HTTP errors
+        keys = keys_response.json()['keys']
+
+        # Get the kid from the token header
+        header = jwt.get_unverified_header(token)
+        kid = header['kid']
+
+        # Find the matching key
+        key = next(k for k in keys if k['kid'] == kid)
+        # RSAAlgorithm is not imported, assuming it's part of PyJWT or a helper.
+        # For this context, I'll assume it's a placeholder or needs an import.
+        # If it's from PyJWT, it's usually jwt.algorithms.RSAAlgorithm
+        from jwt.algorithms import RSAAlgorithm
+        public_key = RSAAlgorithm.from_jwk(json.dumps(key))
+
+        # Verify the token
+        decoded = jwt.decode(
+            token,
+            public_key,
+            algorithms=['RS256'],
+            audience=client_id,
+            issuer='https://appleid.apple.com'
+        )
+        return decoded
+    except Exception as e:
+        print(f"Apple token verification failed: {e}")
+        return None
+
+# --- Auth Endpoints ---
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"success": False, "message": "Email and password required"}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({"success": False, "message": "Email already exists"}), 400
+
+    user = User(email=email, name=email.split('@')[0], is_active=False)
+    user.set_password(password)
+    
+    # Generate activation token
+    token = secrets.token_urlsafe(32)
+    user.activation_token = token
+    
+    db.session.add(user)
+    db.session.commit()
+
+    # In production, send email here. For now, log to console.
+    activation_link = f"http://localhost:3001/?token={token}"
+    print(f"\n[EMAIL MOCK] Activation Link for {email}: {activation_link}\n")
+
+    return jsonify({"success": True, "message": "Registration successful. Please check your email."})
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user or not user.check_password(password):
+        return jsonify({"success": False, "message": "Invalid credentials"}), 401
+
+    if not user.is_active:
+        return jsonify({"success": False, "message": "Account not activated. Please check your email."}), 403
+
+    # Generate session token (simplified)
+    return jsonify({
+        "success": True, 
+        "token": "mock_jwt_token_" + str(user.id),
+        "user": user.to_dict()
+    })
+
+@app.route('/api/auth/verify', methods=['POST'])
+def verify_email():
+    data = request.json
+    token = data.get('token')
+
+    if not token:
+        return jsonify({"success": False, "message": "Token required"}), 400
+
+    user = User.query.filter_by(activation_token=token).first()
+
+    if not user:
+        return jsonify({"success": False, "message": "Invalid or expired token"}), 400
+
+    user.is_active = True
+    user.activation_token = None # Invalidate token (optional, or keep for record)
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "token": "mock_jwt_token_" + str(user.id),
+        "user": user.to_dict()
+    })
+
+@app.route('/api/auth/check-email', methods=['POST'])
+def check_email():
+    data = request.json
+    email = data.get('email')
+    user = User.query.filter_by(email=email).first()
+    return jsonify({"exists": bool(user)})
 
 @app.route('/api/auth/social-login', methods=['POST'])
 def social_login():
@@ -97,6 +222,7 @@ def social_login():
 
     try:
         if provider == 'google':
+            # Try to verify as ID Token first (JWT)
             try:
                 id_info = id_token.verify_oauth2_token(
                     token, 
@@ -105,8 +231,19 @@ def social_login():
                 )
                 email = id_info.get('email')
                 name = id_info.get('name')
-            except ValueError as e:
-                return jsonify({"success": False, "message": f"Google token verification failed: {str(e)}"}), 401
+            except Exception:
+                # Fallback: Try as Access Token
+                try:
+                    userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
+                    resp = requests.get(userinfo_url, headers={'Authorization': f'Bearer {token}'})
+                    if resp.status_code == 200:
+                        user_info = resp.json()
+                        email = user_info.get('email')
+                        name = user_info.get('name')
+                    else:
+                        raise Exception("Invalid Access Token")
+                except Exception as e:
+                    return jsonify({"success": False, "message": f"Google auth failed: {str(e)}"}), 401
 
         elif provider == 'facebook':
             # Verify against Graph API
@@ -116,16 +253,20 @@ def social_login():
                 'fields': 'id,name,email'
             }
             resp = requests.get(fb_url, params=params)
+            
             if resp.status_code != 200:
                  return jsonify({"success": False, "message": "Facebook API error"}), 401
             
             user_info = resp.json()
             email = user_info.get('email')
             name = user_info.get('name')
+            
             # Fallback if no email (e.g. phone number account)
             if not email:
+                 # Use ID as pseudo-email for internal uniqueness if real email is missing
+                 # In production, might want to handle this differently (ask user nicely)
                  email = f"{user_info['id']}@facebook.scriba.user"
-
+        
         elif provider == 'apple':
             # Decode the Identity Token
             # For strict verification, we should fetch Apple's public keys and verify signature.
@@ -171,16 +312,17 @@ def social_login():
         user = User.query.filter_by(email=email).first()
         
         if not user:
-            user = User(email=email, name=name or "User")
+            # Social logins are active by default and don't have a password_hash
+            user = User(email=email, name=name or "User", is_active=True) 
             db.session.add(user)
             db.session.commit()
-            print(f"Created new user: {email}")
+            print(f"Created new social user: {email}")
         else:
             # Update name if provided and previously empty
             if name and (not user.name or user.name == "User"):
                 user.name = name
                 db.session.commit()
-            print(f"Found existing user: {email}")
+            print(f"Found existing social user: {email}")
 
         return jsonify({
             "success": True,
@@ -192,4 +334,4 @@ def social_login():
         return jsonify({"success": False, "message": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

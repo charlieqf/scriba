@@ -34,45 +34,92 @@ export const authService = {
 
   /**
    * Check if an email is already registered.
-   * Mock: returns true for 'jane@example.com'
    */
   checkEmail: async (email: string): Promise<boolean> => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    return email.toLowerCase() === 'jane@example.com';
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/auth/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      return data.exists;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   },
 
   /**
    * Login with email and password
    */
   loginWithEmail: async (email: string, password: string): Promise<AuthResponse> => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    // Mock validation
-    if (password === 'password') {
-      const mockUser: User = {
-        id: 'email_user_1',
-        email,
-        provider: 'email',
-        token: 'mock_jwt_token_email',
-      };
-      storageService.saveUser(mockUser);
-      return { success: true, user: mockUser };
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const user: User = { ...data.user, token: data.token };
+        storageService.saveUser(user);
+        return { success: true, user };
+      }
+      return { success: false, error: data.message };
+    } catch (error) {
+      return { success: false, error: 'Network error' };
     }
-    return { success: false, error: 'Invalid password' };
   },
 
   /**
    * Register a new user
    */
   registerWithEmail: async (email: string, password: string): Promise<AuthResponse> => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    const mockUser: User = {
-      id: `new_user_${Date.now()}`,
-      email,
-      provider: 'email',
-      token: 'mock_jwt_token_new',
-    };
-    storageService.saveUser(mockUser);
-    return { success: true, user: mockUser };
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        // Registration successful but NOT logged in yet.
+        return { success: true, message: data.message };
+      }
+      return { success: false, error: data.message };
+    } catch (error) {
+      return { success: false, error: 'Network error' };
+    }
+  },
+
+  /**
+   * Verify email with token
+   */
+  verifyEmail: async (token: string): Promise<AuthResponse> => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/auth/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const user: User = { ...data.user, token: data.token };
+        storageService.saveUser(user);
+        return { success: true, user };
+      }
+      return { success: false, error: data.message };
+    } catch (error) {
+      return { success: false, error: 'Network error' };
+    }
   },
 
   logout: () => {
@@ -83,7 +130,7 @@ export const authService = {
 
   socialLogin: async (provider: 'google' | 'apple' | 'facebook', token: string): Promise<AuthResponse> => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
       const response = await fetch(`${apiUrl}/api/auth/social-login`, {
         method: 'POST',
         headers: {
