@@ -83,6 +83,35 @@ def db_test():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+def verify_apple_token(token, client_id):
+    try:
+        # Fetch Apple's public keys
+        apple_keys_url = "https://appleid.apple.com/auth/keys"
+        keys_response = requests.get(apple_keys_url)
+        keys_response.raise_for_status() # Raise an exception for HTTP errors
+        keys = keys_response.json()['keys']
+
+        # Get the kid from the token header
+        header = jwt.get_unverified_header(token)
+        kid = header['kid']
+
+        # Find the matching key
+        key = next(k for k in keys if k['kid'] == kid)
+        public_key = RSAAlgorithm.from_jwk(json.dumps(key))
+
+        # Verify the token
+        decoded = jwt.decode(
+            token,
+            public_key,
+            algorithms=['RS256'],
+            audience=client_id,
+            issuer='https://appleid.apple.com'
+        )
+        return decoded
+    except Exception as e:
+        print(f"Apple token verification failed: {e}")
+        return None
+
 @app.route('/api/auth/social-login', methods=['POST'])
 def social_login():
     data = request.json
@@ -97,35 +126,15 @@ def social_login():
 
     try:
         if provider == 'google':
-            try:
-                id_info = id_token.verify_oauth2_token(
-                    token, 
-                    google_requests.Request(), 
-                    audience=os.getenv('GOOGLE_CLIENT_ID')
-                )
-                email = id_info.get('email')
-                name = id_info.get('name')
-            except ValueError as e:
-                return jsonify({"success": False, "message": f"Google token verification failed: {str(e)}"}), 401
-
-        elif provider == 'facebook':
-            # Verify against Graph API
-            fb_url = "https://graph.facebook.com/me"
-            params = {
-                'access_token': token,
-                'fields': 'id,name,email'
-            }
-            resp = requests.get(fb_url, params=params)
-            if resp.status_code != 200:
-                 return jsonify({"success": False, "message": "Facebook API error"}), 401
-            
-            user_info = resp.json()
-            email = user_info.get('email')
-            name = user_info.get('name')
-            # Fallback if no email (e.g. phone number account)
-            if not email:
-                 email = f"{user_info['id']}@facebook.scriba.user"
-
+            # Verify the token with Google
+            id_info = id_token.verify_oauth2_token(
+                token, 
+                google_requests.Request(), 
+                audience=os.getenv('GOOGLE_CLIENT_ID')
+            )
+            email = id_info.get('email')
+            name = id_info.get('name')
+        
         elif provider == 'apple':
             # Decode the Identity Token
             # For strict verification, we should fetch Apple's public keys and verify signature.

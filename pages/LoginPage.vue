@@ -7,8 +7,11 @@ import GoogleLoginButton from '../components/GoogleLoginButton.vue';
 
 import { facebookAuth } from '../services/social/facebookAuth';
 import { appleAuth } from '../services/social/appleAuth';
+import { useAppleLogin } from '../composables/useAppleLogin';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER';
+const appleClientId = import.meta.env.VITE_APPLE_CLIENT_ID || '';
+const appleRedirectUri = import.meta.env.VITE_APPLE_REDIRECT_URI || window.location.origin;
 
 // --- Types ---
 type AuthStep = 'landing' | 'email_entry' | 'login_password' | 'signup_password';
@@ -22,55 +25,30 @@ const password = ref('');
 const enableFaceId = ref(false);
 
 // --- Methods ---
-const handleFacebookLogin = async () => {
-    loading.value = true;
-    try {
-        const result = await facebookAuth.login();
-        if (result && result.token) {
-            // Send to backend
-            const authResult = await authService.socialLogin('facebook', result.token);
-            if (authResult.success) {
-                console.log('Logged in user:', authResult.user);
-                alert('Successfully logged in with Facebook');
-            } else {
-                alert(authResult.error);
-            }
-        }
-    } catch (e) {
-        console.error(e);
-    } finally {
-        loading.value = false;
-    }
-};
+const { signIn: signInWithApple } = useAppleLogin(appleClientId, appleRedirectUri);
 
-const handleAppleLogin = async () => {
-    loading.value = true;
-    try {
-        const result = await appleAuth.login();
-        if (result && result.token) {
-             // Send to backend (pass user object if available for name extraction)
-            const authResult = await authService.socialLogin('apple', result.token);
-            if (authResult.success) {
-                console.log('Logged in user:', authResult.user);
-                alert('Successfully logged in with Apple');
-            } else {
-                alert(authResult.error);
-            }
-        }
-    } catch (e) {
-        console.error(e);
-    } finally {
-        loading.value = false;
-    }
-};
-
-const handleGoogleSuccess = async (token: string) => {
+const handleSocialLogin = async (provider: string, loginFn: () => Promise<any>) => {
   loading.value = true;
   try {
-    const result = await authService.socialLogin('google', token);
+    const result = await loginFn();
     if (result.success) {
       console.log('Logged in user:', result.user);
-      alert('Successfully logged in with Google');
+      alert(`Successfully logged in with ${provider === 'face_id' ? 'Face ID' : provider}`);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleSocialSuccess = async (provider: 'google' | 'apple' | 'facebook', token: string) => {
+  loading.value = true;
+  try {
+    const result = await authService.socialLogin(provider, token);
+    if (result.success) {
+      console.log('Logged in user:', result.user);
+      alert(`Successfully logged in with ${provider === 'apple' ? 'Apple' : (provider === 'google' ? 'Google' : 'Facebook')}`);
     } else {
       alert(result.error);
     }
@@ -80,6 +58,41 @@ const handleGoogleSuccess = async (token: string) => {
     loading.value = false;
   }
 };
+
+const handleFacebookLogin = async () => {
+    loading.value = true;
+    try {
+        const result = await facebookAuth.login();
+        if (result && result.token) {
+            await handleSocialSuccess('facebook', result.token);
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        loading.value = false;
+    }
+};
+
+const handleAppleLogin = async () => {
+  loading.value = true;
+  try {
+    const result = await signInWithApple();
+    // Apple ID result structure: { success: true, data: { authorization: { id_token: '...' } } }
+    if (result.success && result.data?.authorization?.id_token) {
+        await handleSocialSuccess('apple', result.data.authorization.id_token);
+    } else {
+        console.error('Apple login failed', result);
+        if (result.error) alert('Apple Login Failed: ' + JSON.stringify(result.error));
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Apple Login Error');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleGoogleSuccess = (token: string) => handleSocialSuccess('google', token);
 
 const handleGoogleError = (msg: string) => {
   console.error('Google Login Error:', msg);
@@ -250,10 +263,10 @@ const getButtonClass = (variant: ButtonVariant) => {
               @error="handleGoogleError"
               class="w-full flex justify-center"
             />
-            <button :class="getButtonClass('black')" @click="handleAppleLogin">
-               <div class="w-5 h-5 flex items-center justify-center"><AppleIcon /></div>
-               <span>Continue with Apple</span>
-            </button>
+          <button :class="getButtonClass('black')" @click="handleAppleLogin">
+            <div class="w-5 h-5 flex items-center justify-center"><AppleIcon /></div>
+            <span>Continue with Apple</span>
+          </button>
             <button :class="getButtonClass('blue')" @click="handleFacebookLogin">
                <div class="w-5 h-5 flex items-center justify-center"><FacebookIcon class="w-5 h-5" /></div>
                <span>Continue with Facebook</span>
