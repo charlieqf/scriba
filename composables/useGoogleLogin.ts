@@ -13,7 +13,19 @@ export function useGoogleLogin(clientId: string, callback: (response: any) => vo
 
     const loadScript = () => {
         if (document.getElementById(SCRIPT_ID)) {
-            isReady.value = true;
+            if (window.google) {
+                initialize(clientId, callback);
+                isReady.value = true;
+            } else {
+                // Script tag exists but window.google not ready yet, check regularly
+                const checkGoogle = setInterval(() => {
+                    if (window.google) {
+                        clearInterval(checkGoogle);
+                        initialize(clientId, callback);
+                        isReady.value = true;
+                    }
+                }, 100);
+            }
             return;
         }
 
