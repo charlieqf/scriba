@@ -169,8 +169,8 @@ const getButtonClass = (variant: ButtonVariant) => {
     <Transition name="fade">
       <div v-if="step === 'landing'" class="flex-1 w-full max-w-md px-6 flex flex-col justify-end pb-10 z-10 absolute inset-0 m-auto h-full">
         <div class="flex-1 flex flex-col items-center justify-center animate-[fadeIn_0.8s_ease-out]">
-          <div class="mb-4 relative">
-            <img :src="logoImg" alt="Scriba" class="h-24 w-auto object-contain" />
+          <div class="mb-10 relative">
+            <img :src="logoImg" alt="Scriba" class="w-48 h-auto object-contain" />
           </div>
           <p class="mt-2 text-slate-500 text-sm font-medium">AI Clinical Reports</p>
         </div>
