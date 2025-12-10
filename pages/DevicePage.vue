@@ -102,6 +102,7 @@ import { useBluetoothService, type DeviceSettings } from '../services/bluetoothS
 import AddDeviceModal from '../components/AddDeviceModal.vue';
 import DeviceSettingsModal from '../components/DeviceSettingsModal.vue';
 import MobileRecordingModal from '../components/MobileRecordingModal.vue';
+import { useRecordingService } from '../services/recordingService';
 
 // Bluetooth service
 const {
@@ -116,6 +117,8 @@ const {
   connectToDevice,
   updateSettings,
 } = useBluetoothService();
+
+const { startRecording } = useRecordingService();
 
 // Local state
 const props = defineProps<{ user?: any }>();
@@ -196,9 +199,8 @@ function handleRetryConnection() {
 }
 
 function handleStartSession() {
-  // Will navigate to recording page in future
   console.log('Starting session...');
-  alert('Start Session - Recording feature coming in Week 2!');
+  startRecording(isMobileMode.value ? 'mobile' : 'badge');
 }
 
 function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {

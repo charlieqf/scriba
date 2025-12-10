@@ -94,10 +94,21 @@ export function useBluetoothService() {
         return true;
     }
 
+    // Event listeners
+    type DisconnectCallback = () => void;
+    const disconnectCallbacks: DisconnectCallback[] = [];
+
+    function onDisconnect(callback: DisconnectCallback) {
+        disconnectCallbacks.push(callback);
+    }
+
     async function disconnect(): Promise<void> {
         await new Promise(resolve => setTimeout(resolve, 500));
         connectedDevice.value = null;
         isConnected.value = false;
+
+        // Trigger listeners
+        disconnectCallbacks.forEach(cb => cb());
     }
 
     function updateSettings(key: keyof DeviceSettings, value: boolean): void {
@@ -121,5 +132,6 @@ export function useBluetoothService() {
         connectToDevice,
         disconnect,
         updateSettings,
+        onDisconnect,
     };
 }
