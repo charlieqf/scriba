@@ -295,17 +295,15 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
 
 .connect-button {
   background: #ffffff;
-  box-shadow: 
-    0 0 0 1px rgba(20, 184, 166, 0.2),
-    0 0 0 16px rgba(20, 184, 166, 0.15),
-    0 0 0 45px rgba(20, 184, 166, 0.08),
-    0 20px 40px rgba(20, 184, 166, 0.2);
+  /* Single layer, faint halo effect as requested */
+  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.05), 0 0 60px 20px rgba(20, 184, 166, 0.08);
+  margin-top: 40px; /* Push down slightly from center */
 }
 
 .connect-button .button-inner {
   width: 80px;
   height: 80px;
-  background: rgba(20, 184, 166, 0.1);
+  background: rgba(20, 184, 166, 0.05); /* Softer background */
   border-radius: 50%;
   display: flex;
   align-items: center;
