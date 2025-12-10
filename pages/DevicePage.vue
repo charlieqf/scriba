@@ -167,6 +167,8 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
   min-height: 100vh;
   background: #F8FAFC;
   padding-bottom: 100px; /* Space for bottom nav */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Header */
