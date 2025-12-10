@@ -91,6 +91,13 @@
       @switch="handleSwitchToMobile"
       @retry="handleRetryConnection"
     />
+
+    <StartSessionModal 
+      :visible="showStartSessionModal"
+      :is-mobile-mode="isMobileMode"
+      @confirm="handleConfirmStart"
+      @cancel="showStartSessionModal = false"
+    />
   </div>
 </template>
 
@@ -101,104 +108,19 @@ import deviceIconImg from '../assets/device_icon.png';
 import { useBluetoothService, type DeviceSettings } from '../services/bluetoothService';
 import AddDeviceModal from '../components/AddDeviceModal.vue';
 import DeviceSettingsModal from '../components/DeviceSettingsModal.vue';
-import MobileRecordingModal from '../components/MobileRecordingModal.vue';
-import { useRecordingService } from '../services/recordingService';
+// ... imports
+import StartSessionModal from '../components/StartSessionModal.vue';
 
-// Bluetooth service
-const {
-  isScanning,
-  isConnected,
-  connectedDevice,
-  availableDevices,
-  connectionStatus,
-  deviceSettings,
-  uploadQueue,
-  startScan,
-  connectToDevice,
-  updateSettings,
-} = useBluetoothService();
+// ... inside script setup
+const showStartSessionModal = ref(false);
 
-const { startRecording } = useRecordingService();
-
-// Local state
-const props = defineProps<{ user?: any }>();
-
-// Computed
-const userName = computed(() => {
-  if (props.user?.name) {
-    return props.user.name.split(' ')[0]; // First name
-  }
-  return 'User';
-});
-const showAddDeviceModal = ref(false);
-const showSettingsModal = ref(false);
-const showMobileRecordingModal = ref(false);
-const isConnecting = ref(false);
-const failedAttempts = ref(0);
-
-// Computed
-const greetingMessage = computed(() => {
-  if (isConnected.value || isMobileMode.value) {
-    return 'Tap below to start a new session recording.';
-  }
-  return 'Please connect your Scriba badge to begin.';
-});
-
-const isMobileMode = ref(false);
-const activeConnectionStatus = computed(() => {
-    if (isMobileMode.value) return 'MOBILE MIC';
-    return connectionStatus.value;
-});
-
-// Handlers
-async function handleConnectClick() {
-  showAddDeviceModal.value = true;
-  await handleScan();
-}
-
-async function handleScan() {
-  await startScan();
-}
-
-async function handlePairDevice(deviceId: string) {
-  isConnecting.value = true;
-  const success = await connectToDevice(deviceId);
-  isConnecting.value = false;
-  
-  if (success) {
-    showAddDeviceModal.value = false;
-    failedAttempts.value = 0;
-    isMobileMode.value = false;
-  } else {
-    failedAttempts.value++;
-    console.log(`Connection failed. Attempt ${failedAttempts.value}/3`);
-    
-    if (failedAttempts.value >= 3) {
-      showAddDeviceModal.value = false; // Close scanning modal
-      showMobileRecordingModal.value = true;
-    }
-  }
-}
-
-function handleCloseMobileModal() {
-    showMobileRecordingModal.value = false;
-    failedAttempts.value = 0; 
-}
-
-function handleSwitchToMobile() {
-    showMobileRecordingModal.value = false;
-    isMobileMode.value = true;
-    failedAttempts.value = 0;
-}
-
-function handleRetryConnection() {
-    showMobileRecordingModal.value = false;
-    showAddDeviceModal.value = true;
-    failedAttempts.value = 0;
-    handleScan();
-}
-
+// ... handlers
 function handleStartSession() {
+  showStartSessionModal.value = true;
+}
+
+function handleConfirmStart() {
+  showStartSessionModal.value = false;
   console.log('Starting session...');
   startRecording(isMobileMode.value ? 'mobile' : 'badge');
 }
