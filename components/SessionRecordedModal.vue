@@ -61,6 +61,11 @@ const lastName = ref('');
 const isValid = computed(() => firstName.value.trim() && lastName.value.trim());
 
 function handleClose() {
+  if (!isValid.value) {
+    alert('Please fill in the complete First Name and Last Name before leaving.');
+    return;
+  }
+  
   if (confirm('Are you sure you want to discard this recording?')) {
     emit('close');
     resetForm();
