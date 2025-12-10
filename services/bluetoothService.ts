@@ -77,6 +77,12 @@ export function useBluetoothService() {
         const device = availableDevices.value.find(d => d.id === deviceId);
         if (!device) return false;
 
+        // Simulate connection failure for 'unknown-1' to test retry logic
+        if (deviceId === 'unknown-1') {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            return false;
+        }
+
         // Simulate connection delay
         await new Promise(resolve => setTimeout(resolve, 1000));
 

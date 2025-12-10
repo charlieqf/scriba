@@ -9,8 +9,8 @@
         <h1>Device</h1>
       </div>
       <div class="header-right">
-        <span :class="['status-badge', connectionStatus.toLowerCase()]">
-          {{ connectionStatus }}
+        <span :class="['status-badge', activeConnectionStatus.toLowerCase().replace(' ', '-')]">
+          {{ activeConnectionStatus }}
         </span>
         <button class="settings-btn" @click="showSettingsModal = true">
           <Settings :size="22" />
@@ -30,7 +30,7 @@
       <div class="action-area">
         <!-- Disconnected State -->
         <button 
-          v-if="!isConnected" 
+          v-if="!isConnected && !isMobileMode" 
           class="connect-button"
           @click="handleConnectClick"
         >
@@ -84,6 +84,13 @@
       @close="showSettingsModal = false"
       @update="handleSettingsUpdate"
     />
+
+    <MobileRecordingModal
+      :visible="showMobileRecordingModal"
+      @close="handleCloseMobileModal"
+      @switch="handleSwitchToMobile"
+      @retry="handleRetryConnection"
+    />
   </div>
 </template>
 
@@ -94,6 +101,7 @@ import deviceIconImg from '../assets/device_icon.png';
 import { useBluetoothService, type DeviceSettings } from '../services/bluetoothService';
 import AddDeviceModal from '../components/AddDeviceModal.vue';
 import DeviceSettingsModal from '../components/DeviceSettingsModal.vue';
+import MobileRecordingModal from '../components/MobileRecordingModal.vue';
 
 // Bluetooth service
 const {
@@ -121,14 +129,22 @@ const userName = computed(() => {
 });
 const showAddDeviceModal = ref(false);
 const showSettingsModal = ref(false);
+const showMobileRecordingModal = ref(false);
 const isConnecting = ref(false);
+const failedAttempts = ref(0);
 
 // Computed
 const greetingMessage = computed(() => {
-  if (isConnected.value) {
+  if (isConnected.value || isMobileMode.value) {
     return 'Tap below to start a new session recording.';
   }
   return 'Please connect your Scriba badge to begin.';
+});
+
+const isMobileMode = ref(false);
+const activeConnectionStatus = computed(() => {
+    if (isMobileMode.value) return 'MOBILE MIC';
+    return connectionStatus.value;
 });
 
 // Handlers
@@ -148,7 +164,35 @@ async function handlePairDevice(deviceId: string) {
   
   if (success) {
     showAddDeviceModal.value = false;
+    failedAttempts.value = 0;
+    isMobileMode.value = false;
+  } else {
+    failedAttempts.value++;
+    console.log(`Connection failed. Attempt ${failedAttempts.value}/3`);
+    
+    if (failedAttempts.value >= 3) {
+      showAddDeviceModal.value = false; // Close scanning modal
+      showMobileRecordingModal.value = true;
+    }
   }
+}
+
+function handleCloseMobileModal() {
+    showMobileRecordingModal.value = false;
+    failedAttempts.value = 0; 
+}
+
+function handleSwitchToMobile() {
+    showMobileRecordingModal.value = false;
+    isMobileMode.value = true;
+    failedAttempts.value = 0;
+}
+
+function handleRetryConnection() {
+    showMobileRecordingModal.value = false;
+    showAddDeviceModal.value = true;
+    failedAttempts.value = 0;
+    handleScan();
 }
 
 function handleStartSession() {
@@ -228,7 +272,8 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
   color: #64748B;
 }
 
-.status-badge.ready {
+.status-badge.ready,
+.status-badge.mobile-mic {
   background: #D1FAE5;
   color: #059669;
 }
@@ -338,10 +383,26 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
   }
 }
 
+@keyframes breathe-glow-deep {
+  0% {
+    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 70px 25px rgba(20, 184, 166, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.7);
+  }
+}
+
 .session-button {
   background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
   margin-top: 80px; /* Push down to match connect button */
   animation: breathe-glow 3s infinite ease-in-out; /* Breathing effect */
+}
+
+.session-button:hover {
+  animation: breathe-glow-deep 3s infinite ease-in-out;
 }
 
 .session-button .button-inner {
@@ -369,13 +430,13 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
   letter-spacing: 1px;
 }
 
-.connect-button:hover,
-.session-button:hover {
+.connect-button:hover {
   transform: scale(1.02);
+  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.3), 0 0 80px 30px rgba(20, 184, 166, 0.4);
 }
 
-.connect-button:active,
-.session-button:active {
+.session-button:active,
+.connect-button:active {
   transform: scale(0.98);
 }
 
