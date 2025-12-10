@@ -280,8 +280,8 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
 
 .connect-button,
 .session-button {
-  width: 220px;
-  height: 220px;
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
