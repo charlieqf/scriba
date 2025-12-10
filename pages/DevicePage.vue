@@ -362,7 +362,31 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
   margin-top: 40px; /* Reduced from 80px */
 }
 
-/* ... */
+
+/* Animation Keyframes */
+@keyframes breathe-glow {
+  0% {
+    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 60px 20px rgba(20, 184, 166, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.4);
+  }
+}
+
+@keyframes breathe-glow-deep {
+  0% {
+    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 70px 25px rgba(20, 184, 166, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.7);
+  }
+}
 
 .session-button {
   background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
