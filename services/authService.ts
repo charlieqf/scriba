@@ -129,32 +129,43 @@ export const authService = {
   getCurrentUser: () => storageService.getUser(),
 
   socialLogin: async (provider: 'google' | 'apple' | 'facebook', token: string): Promise<AuthResponse> => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-      const response = await fetch(`${apiUrl}/api/auth/social-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ provider, token }),
-      });
+    console.log(`[Mock] Processing social login for ${provider}...`);
 
-      const data = await response.json();
+    // Default mock user
+    let user: User = {
+      id: `user_${Date.now()}`,
+      name: 'Guest User',
+      email: 'guest@example.com',
+      provider: provider,
+      token: 'mock_jwt_token_' + Date.now(),
+    };
 
-      if (data.success) {
-        // Adapt backend user to frontend user type if needed
-        const user: User = {
-          ...data.user,
-          token: data.token
-        };
-        storageService.saveUser(user);
-        return { success: true, user };
+    // Try to decode JWT for Google to get real name
+    if (provider === 'google' && token) {
+      try {
+        // JWT is header.payload.signature
+        const payloadPart = token.split('.')[1];
+        if (payloadPart) {
+          // Base64 decode
+          const decoded = JSON.parse(atob(payloadPart));
+          if (decoded.name) user.name = decoded.name;
+          if (decoded.email) user.email = decoded.email;
+          if (decoded.picture) user.avatar = decoded.picture;
+          console.log('Decoded Google User:', user.name);
+        }
+      } catch (e) {
+        console.error('Failed to decode Google token', e);
+        user.name = 'Google User';
       }
-
-      return { success: false, error: data.message || 'Login failed' };
-    } catch (error) {
-      console.error('Social login error:', error);
-      return { success: false, error: 'Network connection failed' };
+    } else {
+      // Fallback for others or if decoding fails
+      const mockDefaults = await mockLogin(provider);
+      if (mockDefaults.success && mockDefaults.user) {
+        user = mockDefaults.user;
+      }
     }
+
+    storageService.saveUser(user);
+    return { success: true, user };
   }
 };

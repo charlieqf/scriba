@@ -1,10 +1,10 @@
 export interface User {
   id: string;
-  email?: string;
-  name?: string;
-  avatarUrl?: string;
-  provider: 'apple' | 'google' | 'facebook' | 'email';
-  token: string;
+  name: string;
+  email: string;
+  provider: 'email' | 'google' | 'apple' | 'facebook';
+  token?: string;
+  avatar?: string;
 }
 
 export interface AuthResponse {
