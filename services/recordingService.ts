@@ -88,30 +88,74 @@ export function useRecordingService() {
     }
 
     function startMockTranscription() {
-        // Add a new line every few seconds
         clearInterval(transcriptionInterval);
-        let index = 0;
 
-        // Add initial line immediately
-        addTranscriptLine(index);
-        index++;
+        let lineIndex = 0;
+        let charIndex = 0;
+        let isPausing = false;
+        let pauseCounter = 0;
+
+        // Reset if we are restarting? 
+        // ideally we should continue from where we left off if paused, 
+        // but for simplicity of this mock, we can just continue appending if the list isn't empty
+        if (transcript.value.length > 0) {
+            const lastItem = transcript.value[transcript.value.length - 1];
+            // Find where we are in the mock conversation based on the last item's text
+            // This is a bit tricky for a simple mock, let's just say resume behavior 
+            // clears and starts over OR we just keep adding new lines. 
+            // To be simple and robust: if "resuming", we just pick up from lineIndex = transcript.length
+            lineIndex = transcript.value.length;
+            // If the last one wasn't finished, we should probably finish it, but let's assume pause marks it final for now
+        }
 
         transcriptionInterval = setInterval(() => {
-            if (index < MOCK_CONVERSATION.length) {
-                addTranscriptLine(index);
-                index++;
+            if (lineIndex >= MOCK_CONVERSATION.length) {
+                clearInterval(transcriptionInterval);
+                return;
             }
-        }, 3000);
-    }
 
-    function addTranscriptLine(index: number) {
-        const line = MOCK_CONVERSATION[index];
-        transcript.value.push({
-            id: Date.now().toString() + index,
-            speaker: line.speaker as 'patient' | 'physio',
-            text: line.text,
-            final: true
-        });
+            const currentLineDef = MOCK_CONVERSATION[lineIndex];
+
+            // If we are pausing between lines
+            if (isPausing) {
+                pauseCounter++;
+                if (pauseCounter > 20) { // 20 * 50ms = 1 sec pause
+                    isPausing = false;
+                    pauseCounter = 0;
+                    lineIndex++; // Move to next line
+                    charIndex = 0;
+                }
+                return;
+            }
+
+            // Start a new box if needed
+            if (charIndex === 0) {
+                transcript.value.push({
+                    id: Date.now().toString() + lineIndex,
+                    speaker: currentLineDef.speaker as 'patient' | 'physio',
+                    text: '',
+                    final: false
+                });
+            }
+
+            // Append next chunk (simulating words or characters)
+            // Let's do 2 characters at a time for speedier 'speaking' feel
+            const chunk = currentLineDef.text.slice(charIndex, charIndex + 2);
+
+            if (chunk) {
+                const lastIdx = transcript.value.length - 1;
+                transcript.value[lastIdx].text += chunk;
+                charIndex += 2;
+            }
+
+            // Check if line is done
+            if (charIndex >= currentLineDef.text.length) {
+                const lastIdx = transcript.value.length - 1;
+                transcript.value[lastIdx].final = true;
+                isPausing = true;
+            }
+
+        }, 50); // 50ms interval for fluid typing effect
     }
 
     function stopMockTranscription() {
