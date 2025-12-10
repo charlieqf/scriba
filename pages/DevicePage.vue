@@ -295,9 +295,9 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
 
 .connect-button {
   background: #ffffff;
-  /* Single layer, faint halo effect as requested */
-  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.05), 0 0 60px 20px rgba(20, 184, 166, 0.08);
-  margin-top: 40px; /* Push down slightly from center */
+  /* Larger, more visible halo, moved further down */
+  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.1), 0 0 80px 30px rgba(20, 184, 166, 0.15);
+  margin-top: 80px; /* Push down further */
 }
 
 .connect-button .button-inner {
