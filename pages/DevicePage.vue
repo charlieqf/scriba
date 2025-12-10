@@ -359,62 +359,14 @@ function handleSettingsUpdate(key: keyof DeviceSettings, value: boolean) {
   background: #ffffff;
   /* Larger, more visible halo, moved further down */
   box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.1), 0 0 80px 30px rgba(20, 184, 166, 0.15);
-  margin-top: 80px; /* Push down further */
+  margin-top: 40px; /* Reduced from 80px */
 }
 
-.connect-button .button-inner {
-  width: 80px;
-  height: 80px;
-  background: rgba(20, 184, 166, 0.05); /* Softer background */
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #14B8A6;
-  margin-bottom: 8px;
-}
-
-.connect-button .button-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #14B8A6;
-}
-
-.connect-button .button-subtitle {
-  font-size: 12px;
-  font-weight: 500;
-  color: #14B8A6;
-  letter-spacing: 1px;
-}
-
-/* Animation Keyframes */
-@keyframes breathe-glow {
-  0% {
-    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 60px 20px rgba(20, 184, 166, 0.6);
-  }
-  100% {
-    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.4);
-  }
-}
-
-@keyframes breathe-glow-deep {
-  0% {
-    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 70px 25px rgba(20, 184, 166, 0.9);
-  }
-  100% {
-    box-shadow: 0 0 40px 10px rgba(20, 184, 166, 0.7);
-  }
-}
+/* ... */
 
 .session-button {
   background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
-  margin-top: 80px; /* Push down to match connect button */
+  margin-top: 40px; /* Reduced from 80px */
   animation: breathe-glow 3s infinite ease-in-out; /* Breathing effect */
 }
 
