@@ -140,22 +140,40 @@ export const authService = {
       token: 'mock_jwt_token_' + Date.now(),
     };
 
-    // Try to decode JWT for Google to get real name
+    // Try to decode JWT or Fetch Profile (for Access Token)
     if (provider === 'google' && token) {
+      // Method 1: Try decoding as JWT (ID Token)
+      let decoded = null;
       try {
-        // JWT is header.payload.signature
         const payloadPart = token.split('.')[1];
         if (payloadPart) {
-          // Base64 decode
-          const decoded = JSON.parse(atob(payloadPart));
+          decoded = JSON.parse(atob(payloadPart));
           if (decoded.name) user.name = decoded.name;
           if (decoded.email) user.email = decoded.email;
           if (decoded.picture) user.avatar = decoded.picture;
-          console.log('Decoded Google User:', user.name);
+          console.log('Decoded Google JWT:', user.name);
         }
       } catch (e) {
-        console.error('Failed to decode Google token', e);
-        user.name = 'Google User';
+        // Not a JWT, likely an Access Token
+      }
+
+      // Method 2: If no name found, try finding via UserInfo Endpoint (Access Token)
+      if (!decoded || !user.name || user.name === 'Guest User') {
+        try {
+          console.log('Fetching Google Profile via Access Token...');
+          const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (userInfoRes.ok) {
+            const userInfo = await userInfoRes.json();
+            if (userInfo.name) user.name = userInfo.name;
+            if (userInfo.email) user.email = userInfo.email;
+            if (userInfo.picture) user.avatar = userInfo.picture;
+            console.log('Fetched Google Profile:', user.name);
+          }
+        } catch (fetchErr) {
+          console.error('Failed to fetch Google profile', fetchErr);
+        }
       }
     } else {
       // Fallback for others or if decoding fails
